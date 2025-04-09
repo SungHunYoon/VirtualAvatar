@@ -1,29 +1,27 @@
-import openai
-from dotenv import load_dotenv
 import os
-from tts import stream_tts
+from openai import AsyncOpenAI
+from dotenv import load_dotenv
+from tts import speak_stream
 
 load_dotenv()
-openai.api_key = os.getenv("OPENAI_API_KEY")
+client = AsyncOpenAI(api_key=os.getenv("OPENAI_API_KEY"))
 
-async def query_gpt_stream(text):
-    print(f"\n🤖 GPT: {text}")
-    stream = openai.ChatCompletion.create(
-        model="gpt-4o",
+async def query_gpt_stream(prompt):
+    print("🧠 GPT 스트리밍 응답 시작")
+    stream = await client.chat.completions.create(
+        model="gpt-3.5-turbo",
         messages=[
-            {"role": "system", "content": "너는 친근하고 똑똑한 한국어 음성 기반 대화 비서야. 짧고 자연스럽게 대답해줘."},
-            {"role": "user", "content": text}
+            {"role": "system", "content": "너는 친절한 한국어 비서야. 짧고 간단하게 대답해줘"},
+            {"role": "user", "content": prompt}
         ],
-        stream=True
+        stream=True,
     )
 
-    buffer = ""
-    for chunk in stream:
-        content = chunk['choices'][0]['delta'].get("content", "")
-        print(content, end="", flush=True)
-        buffer += content
-        if buffer.endswith("다.") or buffer.endswith("."):
-            await stream_tts(buffer)
-            buffer = ""
-    if buffer:
-        await stream_tts(buffer)
+    text_accum = ""
+    async for chunk in stream:
+        if chunk.choices[0].delta.content:
+            text_piece = chunk.choices[0].delta.content
+            print(text_piece, end="", flush=True)
+            text_accum += text_piece
+            await speak_stream(text_piece)
+    print("\n🧠 GPT 응답 완료")

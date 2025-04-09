@@ -50,6 +50,7 @@ async def main():
                     result = stt.transcribe_buffer()
                     if result:
                         print(f"🗣️ 위스퍼 인식 : {result}\n")
+                        await query_gpt_stream(result)
                     recording = False
                     silence_counter = 0
 

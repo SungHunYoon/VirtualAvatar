@@ -1,12 +1,26 @@
 import asyncio
-import sounddevice as sd
 import numpy as np
-import edge_tts
+import sounddevice as sd
+import subprocess
+from edge_tts import Communicate
 
-async def stream_tts(text):
-    tts = edge_tts.Communicate(text=text, voice="ko-KR-SunHiNeural")
-    async for chunk in tts.stream():
+async def speak_stream(text):
+    communicate = Communicate(text=text, voice="ko-KR-SunHiNeural")
+
+    async for chunk in communicate.stream():
         if chunk["type"] == "audio":
-            audio = np.frombuffer(chunk["data"], dtype=np.int16)
-            sd.play(audio, samplerate=24000)
-            sd.wait()
+            mp3_data = chunk["data"]
+
+            process = subprocess.Popen(
+                ["ffmpeg", "-i", "pipe:0", "-f", "wav", "-ar", "24000", "-ac", "1", "-"],
+                stdin=subprocess.PIPE,
+                stdout=subprocess.PIPE,
+                stderr=subprocess.DEVNULL
+            )
+            try:
+                wav_data, _ = process.communicate(mp3_data, timeout=5)
+                audio_array = np.frombuffer(wav_data, dtype=np.int16).astype(np.float32) / 32768.0
+                sd.play(audio_array, samplerate=24000)
+                sd.wait()
+            except subprocess.TimeoutExpired:
+                process.kill()
