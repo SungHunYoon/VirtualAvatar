@@ -4,6 +4,7 @@ import numpy as np
 import sounddevice as sd
 from edge_tts import Communicate
 from threading import Thread
+from state import is_tts_playing
 
 async def speak_stream(text):
     if not text.strip() or len(text.strip()) < 2:
@@ -30,6 +31,9 @@ async def speak_stream(text):
 
     # 🎯 여기를 `await` 하지 않도록 변경!
     player_thread = Thread(target=audio_player, daemon=True)
+    
+    is_tts_playing.set(True)
+    
     player_thread.start()
 
     try:
@@ -38,7 +42,8 @@ async def speak_stream(text):
                 ffmpeg.stdin.write(chunk["data"])
     except Exception as e:
         print(f"[TTS Stream Error] {e}")
-
-    ffmpeg.stdin.close()
-    player_thread.join()
-    ffmpeg.wait()
+    finally:
+        ffmpeg.stdin.close()
+        player_thread.join()
+        ffmpeg.wait()
+        is_tts_playing.set(False)

@@ -6,6 +6,7 @@ import collections
 from vad import SileroVAD
 from stt import Whisper
 from gpt import query_gpt_stream
+from state import is_tts_playing
 
 vad = SileroVAD()
 stt = Whisper()
@@ -33,6 +34,10 @@ async def main():
     ):
         while True:
             chunk = audio_queue.get()
+            
+            if is_tts_playing.get():
+                continue
+            
             rolling_buffer.append(chunk)
 
             if vad.is_speech(chunk):
