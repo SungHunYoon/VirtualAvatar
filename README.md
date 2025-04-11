@@ -60,21 +60,15 @@ GOOGLE_APPLICATION_CREDENTIALS=./your-google-credentials.json
 
 ---
 
-### 1. WebSocket 서버 실행 (입모양 연동용)
+## 실행 방법
 
-```bash
-python -m http.server 5500
-```
-
-### 2. 메인 프로그램 실행
+### 1. 메인 프로그램 실행
 
 ```bash
 python main.py
 ```
 
-> 둘 다 동시에 실행되어야 **아바타 입 모양 제어까지 정상 작동**합니다.
-
-### 3. localhost:5500으로 접속
+### 2. localhost:5500으로 접속
 
 ---
 

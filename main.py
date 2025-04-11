@@ -3,12 +3,26 @@ import queue
 import asyncio
 import numpy as np
 import collections
+import threading
+import http.server
+import socketserver
+
 from vad import SileroVAD
 from stt import GoogleSTT
-
 from gpt import query_gpt_stream
 from state import is_tts_playing
 from websocket import start_ws_server
+
+# 📦 웹서버 자동 실행
+def start_web_server():
+    PORT = 5500
+    handler = http.server.SimpleHTTPRequestHandler
+    with socketserver.TCPServer(("", PORT), handler) as httpd:
+        print(f"🌐 HTTP 서버 실행 중: http://localhost:{PORT}")
+        httpd.serve_forever()
+
+# ✅ 백그라운드 웹 서버 실행
+threading.Thread(target=start_web_server, daemon=True).start()
 
 vad = SileroVAD()
 stt = GoogleSTT()
@@ -16,8 +30,8 @@ audio_queue = queue.Queue()
 
 recording = False
 silence_counter = 0
-SILENCE_LIMIT = 12  # 약 384ms
-ROLLING_BUFFER_LIMIT = 48  # 약 1.5초 분량
+SILENCE_LIMIT = 12
+ROLLING_BUFFER_LIMIT = 48
 rolling_buffer = collections.deque(maxlen=ROLLING_BUFFER_LIMIT)
 
 def audio_callback(indata, frames, time_info, status):
@@ -41,7 +55,7 @@ async def main():
                 while not audio_queue.empty():
                     audio_queue.get_nowait()
                 continue
-            
+
             chunk = audio_queue.get()
             rolling_buffer.append(chunk)
 
@@ -63,7 +77,6 @@ async def main():
                         await query_gpt_stream(result)
                     recording = False
                     silence_counter = 0
-                    
 
 if __name__ == "__main__":
     asyncio.run(main())
