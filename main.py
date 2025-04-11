@@ -4,13 +4,14 @@ import asyncio
 import numpy as np
 import collections
 from vad import SileroVAD
-from stt import Whisper
+from stt import GoogleSTT
+
 from gpt import query_gpt_stream
 from state import is_tts_playing
 from websocket import start_ws_server
 
 vad = SileroVAD()
-stt = Whisper()
+stt = GoogleSTT()
 audio_queue = queue.Queue()
 
 recording = False
@@ -35,11 +36,13 @@ async def main():
         callback=audio_callback
     ):
         while True:
-            chunk = audio_queue.get()
-            
             if is_tts_playing.get():
+                rolling_buffer.clear()
+                while not audio_queue.empty():
+                    audio_queue.get_nowait()
                 continue
             
+            chunk = audio_queue.get()
             rolling_buffer.append(chunk)
 
             if vad.is_speech(chunk):
@@ -56,10 +59,11 @@ async def main():
                     print("🛑 발화 종료")
                     result = stt.transcribe_buffer()
                     if result:
-                        print(f"🗣️ 위스퍼 인식 : {result}\n")
+                        print(f"🗣️ 텍스트 인식 : {result}\n")
                         await query_gpt_stream(result)
                     recording = False
                     silence_counter = 0
+                    
 
 if __name__ == "__main__":
     asyncio.run(main())
