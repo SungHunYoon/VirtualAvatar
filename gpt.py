@@ -57,13 +57,13 @@ async def query_gpt_stream(prompt):
         summary = await summarize_old_history(old)
 
     # GPT 메시지 구성
-    messages = [{"role": "system", "content": "너는 친절한 한국어 비서야. 짧고 간단하게 대답해줘"}]
+    messages = [{"role": "system", "content": "너는 친절한 한국어 비서야. 짧고 간단하게 대답해줘."}]
     if summary:
         messages.append({"role": "system", "content": f"지금까지의 요약: {summary}"})
     messages.extend(history)
 
     stream = await client.chat.completions.create(
-        model="gpt-3.5-turbo",
+        model="gpt-4o",
         messages=messages,
         stream=True,
     )

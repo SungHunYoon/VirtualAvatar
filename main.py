@@ -7,6 +7,7 @@ from vad import SileroVAD
 from stt import Whisper
 from gpt import query_gpt_stream
 from state import is_tts_playing
+from websocket import start_ws_server
 
 vad = SileroVAD()
 stt = Whisper()
@@ -24,6 +25,7 @@ def audio_callback(indata, frames, time_info, status):
 
 async def main():
     global recording, silence_counter
+    await start_ws_server()
     print("🟢 시스템 시작")
     with sd.InputStream(
         samplerate=16000,

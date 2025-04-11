@@ -1,0 +1,84 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <title>Live2D Hiyori 립싱크 테스트</title>
+  <style>
+    html, body {
+      margin: 0;
+      overflow: hidden;
+      background: #111;
+    }
+    canvas {
+      width: 100%;
+      height: 100%;
+      display: block;
+    }
+  </style>
+</head>
+<body>
+<canvas id="canvas"></canvas>
+
+<!-- PIXI.js -->
+<script src="https://cdn.jsdelivr.net/npm/pixi.js@6.5.8/dist/browser/pixi.min.js"></script>
+<!-- Live2D Cubism Core -->
+<script src="https://cubism.live2d.com/sdk-web/cubismcore/live2dcubismcore.min.js"></script>
+<!-- pixi-live2d-display for Cubism 4 -->
+<script src="https://cdn.jsdelivr.net/npm/pixi-live2d-display@0.4.0/dist/cubism4.min.js"></script>
+
+<script>
+let app = new PIXI.Application({
+  view: document.getElementById("canvas"),
+  autoStart: true,
+  resizeTo: window,
+});
+
+let model = null;
+let mouthTarget = 0;
+let mouthCurrent = 0;
+
+// 🧠 WebSocket 연결
+const socket = new WebSocket("ws://localhost:8765");
+
+socket.onopen = () => console.log("✅ WebSocket 연결됨");
+socket.onerror = (err) => console.error("❌ WebSocket 에러:", err);
+socket.onmessage = (event) => {
+  const v = parseFloat(event.data);
+  if (!isNaN(v)) {
+    mouthTarget = v;
+  }
+};
+
+// 🎴 Live2D 모델 로딩
+PIXI.live2d.Live2DModel.from("hiyori/runtime/hiyori_free_t08.model3.json", {
+  autoUpdate: false, // 수동 업데이트 모드
+}).then(m => {
+  model = m;
+  model.anchor.set(0.5, 0.5);
+  model.scale.set(0.5);
+  model.x = window.innerWidth / 2;
+  model.y = window.innerHeight / 2 * 2.7;
+
+  // 자동 모션 중단
+  model.internalModel.motionManager?.stopAllMotions();
+  model.motionManager?.stopAllMotions();
+
+  app.stage.addChild(model);
+
+  // 📦 Ticker에서 립싱크 처리
+  app.ticker.add((delta) => {
+    model.update(delta * 16.6667);
+
+    // 📉 부드럽게 값 반영
+    mouthCurrent = 0.8 * mouthCurrent + 0.2 * mouthTarget;
+    const value = Math.max(mouthCurrent, 0); // 최소 0
+
+    const index = model.internalModel.coreModel.getParameterIndex("ParamMouthOpenY");
+    if (index >= 0) {
+      model.internalModel.coreModel.setParameterValueByIndex(index, value);
+    }
+  });
+});
+</script>
+</body>
+</html>
